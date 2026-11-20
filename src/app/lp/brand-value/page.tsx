@@ -431,7 +431,7 @@ function CTA() {
     if (submitting) return;
     trackEvent("generate_lead", { event_category: "lp_brand_value", event_label: "contact_form_submit" });
     setSubmitting(true);
-    await submitContactForm(e.currentTarget, "brand-value");
+    if (!(await submitContactForm(e.currentTarget, "brand-value"))) setSubmitting(false);
   }
   return (
     <section id="cta" className="relative py-16 sm:py-24 bg-gradient-to-br from-[#15447b] via-[#0a1f3d] to-[#060d1c] overflow-hidden">

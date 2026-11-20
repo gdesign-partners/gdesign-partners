@@ -11,7 +11,7 @@ export default function HomeContactForm() {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
-    await submitContactForm(e.currentTarget, "home");
+    if (!(await submitContactForm(e.currentTarget, "home"))) setSubmitting(false);
   }
 
   return (

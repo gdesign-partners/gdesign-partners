@@ -486,7 +486,7 @@ function CTA() {
     if (submitted) return;
     trackEvent("submit_form_productphoto", { position: "cta" });
     setSubmitted(true);
-    await submitContactForm(e.currentTarget, "productphoto");
+    if (!(await submitContactForm(e.currentTarget, "productphoto"))) setSubmitted(false);
   }
 
   const inputCls = "w-full bg-white border-2 border-[#dce8f2] focus:border-[#0a1f3d] text-[#0a1f3d] px-4 h-12 text-[14px] outline-none transition placeholder:text-[#a0b4c8] rounded-xl";

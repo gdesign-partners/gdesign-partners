@@ -1,41 +1,38 @@
-// 会社LP 問い合わせ送信（GAS ウェブアプリへPOST）
-// 旧 formsubmit.co を置換。GAS側で ①メール通知 ②スプレッドシート記録 ③Slack通知 を実行する。
-// GASバックエンド: ~/Desktop/gdesign-partners/gas/contact-form.gs
-export const GAS_CONTACT_URL =
-  "https://script.google.com/macros/s/AKfycbwRyHXytCnlizL1dxe4jNRtcYU_qQpwxlDbCm-H2VAEcYSfSRrtgtU6col1ISFFX3bp/exec";
+// 会社LP 問い合わせ送信
+// 送信先：同一ドメインの受付API（/api/contact）。メール・記録・Slack通知はサーバー側で実行する。
+// 旧：uno@ 所有の GAS ウェブアプリ（2026-11 廃止）。
 
-// 本番ドメインのときだけ production。staging / localhost / IP などは staging 扱い（件名に【LPテスト】が付く）。
-function detectEnv(): "production" | "staging" {
-  if (typeof window === "undefined") return "production";
-  const h = window.location.hostname;
-  return h === "gdesign-partners.co.jp" || h === "www.gdesign-partners.co.jp"
-    ? "production"
-    : "staging";
-}
-
-// フォーム送信 → GASへ fire-and-forget でPOST → thanks ページへ遷移。
-// ブラウザ→GASのCORS回避のため text/plain でJSON送信する（レスポンスは読まない）。
+// フォーム送信 → /api/contact へPOST → 成功なら thanks ページへ遷移。
 // lp: どのLPからの問い合わせか識別する文字列（例: "brand-start"）。
+// 失敗時は例外を投げずに false を返し、画面にメール連絡先を案内する。
 export async function submitContactForm(
   form: HTMLFormElement,
   lp: string,
-): Promise<void> {
+): Promise<boolean> {
   const fd = new FormData(form);
-  const data: Record<string, string> = { lp, env: detectEnv() };
+  const data: Record<string, string> = { lp };
   fd.forEach((value, key) => {
-    if (key.startsWith("_")) return; // formsubmit用メタ項目（_subject等）は除外
+    if (key.startsWith("_")) return; // 旧formsubmit用メタ項目（_subject等）は除外
     data[key] = typeof value === "string" ? value : "";
   });
 
+  let ok = false;
   try {
-    await fetch(GAS_CONTACT_URL, {
+    const res = await fetch("/api/contact", {
       method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    ok = res.ok;
   } catch {
-    // 送信に失敗してもメール/シート/Slackがバックストップ。遷移は続行する。
+    ok = false;
+  }
+
+  if (!ok) {
+    window.alert(
+      "送信できませんでした。お手数ですが、時間をおいて再度お試しいただくか、info@gdesign-partners.co.jp までメールでご連絡ください。",
+    );
+    return false;
   }
 
   // thanks ページへ遷移（hidden の _next からパスのみ抽出。無ければトップ）
@@ -49,4 +46,5 @@ export async function submitContactForm(
     }
   }
   window.location.href = dest;
+  return true;
 }
